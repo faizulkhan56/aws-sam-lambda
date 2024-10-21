@@ -1,12 +1,6 @@
 name: Deploy Lambda and SNS via SAM
-
 on:
-  push:
-    branches:
-      - main  # Triggers on pushes to the main branch
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
