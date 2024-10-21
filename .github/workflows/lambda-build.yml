@@ -29,6 +29,9 @@ jobs:
     - name: Build the SAM application
       run: sam build
 
+    - name: Check S3 Bucket Name
+      run: echo "S3 Bucket ${{ secrets.S3_BUCKET_NAME }}"
+
     # Step 5: Package SAM application (uploads Lambda code to S3)
     - name: Package SAM application
       run: sam package \
