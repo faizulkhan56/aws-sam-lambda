@@ -1,0 +1,62 @@
+name: Deploy Lambda and SNS via SAM
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC token permissions
+      contents: read    # Permissions to access the repository contents
+
+    steps:
+    # Step 1: Check out the repository
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Python (assuming Python-based Lambda function)
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    # Step 3: Configure AWS credentials using OIDC
+    - name: Configure AWS credentials using OIDC
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: us-east-1  # Set to your AWS region
+
+    # Step 4: Install AWS SAM CLI
+    - name: Install AWS SAM CLI
+      run: |
+        pip install aws-sam-cli
+
+    # Step 5: Build the SAM application
+    - name: Build the SAM application
+      run: sam build
+
+    # Step 6: Package SAM application (uploads Lambda code to S3)
+    - name: Package SAM application
+      run: sam package \
+        --output-template-file packaged.yaml \
+        --s3-bucket ${{ secrets.S3_BUCKET_NAME }}
+
+    # Step 7: Deploy SAM application
+    - name: Deploy SAM application
+      run: sam deploy \
+        --template-file packaged.yaml \
+        --stack-name sam-lambda-sns-stack \
+        --capabilities CAPABILITY_IAM \
+        --parameter-overrides \
+          SnsMetricTopicArn=${{ secrets.SNS_METRIC_TOPIC_ARN }} \
+          SnsQueryTopicArn=${{ secrets.SNS_QUERY_TOPIC_ARN }} \
+          LambdaRoleArn=${{ secrets.LAMBDA_ROLE_ARN }} \
+          SlackWebhookUrl=${{ secrets.SLACK_WEBHOOK_URL }}
+
+    # Step 8: Output Lambda ARN
+    - name: Output Lambda ARN
+      run: |
+        aws cloudformation describe-stacks \
+          --stack-name sam-lambda-sns-stack \
+          --query "Stacks[0].Outputs[?OutputKey=='LambdaFunctionArn'].OutputValue" \
+          --output text
