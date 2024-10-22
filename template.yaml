@@ -6,7 +6,7 @@ Resources:
   SlackNotificationLambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: "slack-notification3"
+      FunctionName: "slack-notification4"
       Handler: lambda_function.lambda_handler
       Runtime: python3.9
       CodeUri: ./lambda_function/  # Point to the directory containing your Lambda function code

@@ -41,20 +41,10 @@ jobs:
     - name: Check SAM CLI version
       run: sam --version
 
-    # Step 6: Debugging: Check if the S3 bucket name is available
-    # Ensure that the S3 bucket name is being retrieved properly from GitHub secrets
-    - name: Debug S3 Bucket Name
-      run: echo "S3 Bucket aws-sam-lambda-20241021"
-
     # Step 7: List S3 Buckets to ensure AWS access
     # Verify that the IAM role has access to S3 and the bucket exists
     - name: List S3 Buckets
       run: aws s3 ls
-
-    # Step 8: Package the SAM application (simplified command)
-    # Package the Lambda application, upload it to S3, and generate the CloudFormation template
-    - name: Package SAM application
-      run: sam package --output-template-file packaged.yaml --s3-bucket aws-sam-lambda-20241021
 
     # Step 9: Print environment variables (for debugging)
     - name: Print environment variables
@@ -64,7 +54,7 @@ jobs:
     - name: Package SAM application using environment variable
       run: sam package --output-template-file packaged.yaml --s3-bucket $S3_BUCKET_NAME
       env:
-        S3_BUCKET_NAME: aws-sam-lambda-20241021
+        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
     # Step 11: Deploy the SAM application
     # Deploy the packaged application using CloudFormation and the specified parameters
