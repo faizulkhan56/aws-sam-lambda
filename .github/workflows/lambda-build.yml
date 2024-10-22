@@ -45,7 +45,7 @@ jobs:
     - name: Package SAM application
       run: sam package \
         --output-template-file packaged.yaml \
-        --s3-bucket ${{ secrets.S3_BUCKET_NAME }}
+        --s3-bucket aws-sam-lambda-20241021
 
     # Step 6: Deploy SAM application
     - name: Deploy SAM application
