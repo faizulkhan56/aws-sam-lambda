@@ -1,62 +1,65 @@
 name: Deploy Lambda and SNS via SAM
+
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manually trigger the workflow
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # OIDC token permissions
-      contents: read    # Permissions to access the repository contents
+      id-token: write   # Allow OIDC token usage for AWS authentication
+      contents: read    # Read repository contents
 
     steps:
     # Step 1: Checkout the repository
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Set up Python 3.9
+    # Step 2: Set up Python 3.9 for the SAM Lambda environment
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
         python-version: '3.9'
 
     # Step 3: Configure AWS credentials using OIDC
+    # This uses GitHub Actions OIDC to assume the IAM role in AWS
     - name: Configure AWS credentials using OIDC
       uses: aws-actions/configure-aws-credentials@v2
       with:
-        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}  # Ensure this secret is set in your GitHub repository
         aws-region: us-east-1
 
     # Step 4: Install AWS SAM CLI
+    # Install SAM CLI globally so that it is available in the PATH
     - name: Install AWS SAM CLI
       run: |
         pip install aws-sam-cli
+        echo "export PATH=$PATH:~/.local/bin" >> $GITHUB_ENV  # Ensure ~/.local/bin is added to PATH
 
     # Step 5: Check SAM CLI version
+    # Verify that SAM CLI is installed and available
     - name: Check SAM CLI version
       run: sam --version
 
-    # Step 6: Check S3 Bucket Name
+    # Step 6: Debugging: Check if the S3 bucket name is available
+    # Ensure that the S3 bucket name is being retrieved properly from GitHub secrets
     - name: Debug S3 Bucket Name
-      run: echo "S3 Bucket aws-sam-lambda-20241021"
+      run: echo "S3 Bucket: aws-sam-lambda-20241021"
 
-    # Step 7: List S3 Buckets (to verify access)
+    # Step 7: List S3 Buckets to ensure AWS access
+    # Verify that the IAM role has access to S3 and the bucket exists
     - name: List S3 Buckets
       run: aws s3 ls
 
-    # Step 8: Package SAM application (with full path to SAM CLI)
-    - name: Package SAM application (hardcoded)
-      run: /home/runner/.local/bin/sam package \
+    # Step 8: Package the SAM application (directly using `sam`)
+    # Package the Lambda application, upload it to S3, and generate the CloudFormation template
+    - name: Package SAM application
+      run: sam package \
         --output-template-file packaged.yaml \
         --s3-bucket aws-sam-lambda-20241021
 
-    # Step 9: Package SAM application (debugging)
-    - name: Package SAM application (debug)
-      run: /home/runner/.local/bin/sam package \
-        --output-template-file packaged.yaml \
-        --s3-bucket aws-sam-lambda-20241021 --debug
-
-    # Step 10: Deploy SAM application
+    # Step 9: Deploy the SAM application
+    # Deploy the packaged application using CloudFormation and the specified parameters
     - name: Deploy SAM application
       run: sam deploy \
         --template-file packaged.yaml \
@@ -67,3 +70,12 @@ jobs:
           SnsQueryTopicArn=${{ secrets.SNS_QUERY_TOPIC_ARN }} \
           LambdaRoleArn=${{ secrets.LAMBDA_ROLE_ARN }} \
           SlackWebhookUrl=${{ secrets.SLACK_WEBHOOK_URL }}
+
+    # Step 10: Output the deployed Lambda ARN
+    # After deployment, fetch and output the ARN of the deployed Lambda function
+    - name: Output Lambda ARN
+      run: |
+        aws cloudformation describe-stacks \
+          --stack-name sam-lambda-sns-stack \
+          --query "Stacks[0].Outputs[?OutputKey=='LambdaFunctionArn'].OutputValue" \
+          --output text
