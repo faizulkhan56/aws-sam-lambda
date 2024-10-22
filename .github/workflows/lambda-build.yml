@@ -44,7 +44,7 @@ jobs:
     # Step 6: Debugging: Check if the S3 bucket name is available
     # Ensure that the S3 bucket name is being retrieved properly from GitHub secrets
     - name: Debug S3 Bucket Name
-      run: echo "S3 Bucket: aws-sam-lambda-20241021"
+      run: echo "S3 Bucket aws-sam-lambda-20241021"
 
     # Step 7: List S3 Buckets to ensure AWS access
     # Verify that the IAM role has access to S3 and the bucket exists
