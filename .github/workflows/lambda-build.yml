@@ -20,34 +20,43 @@ jobs:
       with:
         python-version: '3.9'
 
+    # Step 3: Configure AWS credentials using OIDC
     - name: Configure AWS credentials using OIDC
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
         aws-region: us-east-1
 
-    # Step 3: Install AWS SAM CLI
+    # Step 4: Install AWS SAM CLI
     - name: Install AWS SAM CLI
       run: |
         pip install aws-sam-cli
 
-    # Step 4: Build the SAM application
-    - name: Build the SAM application
-      run: sam build
+    # Step 5: Check SAM CLI version
+    - name: Check SAM CLI version
+      run: sam --version
 
-    - name: Check S3 Bucket Name
-      run: echo "S3 Bucket ${{ secrets.S3_BUCKET_NAME }}"
+    # Step 6: Check S3 Bucket Name
+    - name: Debug S3 Bucket Name
+      run: echo "S3 Bucket aws-sam-lambda-20241021"
 
+    # Step 7: List S3 Buckets (to verify access)
     - name: List S3 Buckets
       run: aws s3 ls
 
-    # Step 5: Package SAM application (uploads Lambda code to S3)
-    - name: Package SAM application
-      run: sam package \
+    # Step 8: Package SAM application (with full path to SAM CLI)
+    - name: Package SAM application (hardcoded)
+      run: /home/runner/.local/bin/sam package \
         --output-template-file packaged.yaml \
         --s3-bucket aws-sam-lambda-20241021
 
-    # Step 6: Deploy SAM application
+    # Step 9: Package SAM application (debugging)
+    - name: Package SAM application (debug)
+      run: /home/runner/.local/bin/sam package \
+        --output-template-file packaged.yaml \
+        --s3-bucket aws-sam-lambda-20241021 --debug
+
+    # Step 10: Deploy SAM application
     - name: Deploy SAM application
       run: sam deploy \
         --template-file packaged.yaml \
@@ -58,11 +67,3 @@ jobs:
           SnsQueryTopicArn=${{ secrets.SNS_QUERY_TOPIC_ARN }} \
           LambdaRoleArn=${{ secrets.LAMBDA_ROLE_ARN }} \
           SlackWebhookUrl=${{ secrets.SLACK_WEBHOOK_URL }}
-
-    # Step 7: Output Lambda ARN
-    - name: Output Lambda ARN
-      run: |
-        aws cloudformation describe-stacks \
-          --stack-name sam-lambda-sns-stack \
-          --query "Stacks[0].Outputs[?OutputKey=='LambdaFunctionArn'].OutputValue" \
-          --output text
