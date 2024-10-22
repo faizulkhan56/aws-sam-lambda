@@ -51,14 +51,22 @@ jobs:
     - name: List S3 Buckets
       run: aws s3 ls
 
-    # Step 8: Package the SAM application (directly using `sam`)
+    # Step 8: Package the SAM application (simplified command)
     # Package the Lambda application, upload it to S3, and generate the CloudFormation template
     - name: Package SAM application
-      run: sam package \
-        --output-template-file packaged.yaml \
-        --s3-bucket aws-sam-lambda-20241021
+      run: sam package --output-template-file packaged.yaml --s3-bucket aws-sam-lambda-20241021
 
-    # Step 9: Deploy the SAM application
+    # Step 9: Print environment variables (for debugging)
+    - name: Print environment variables
+      run: printenv
+
+    # Step 10: Package SAM application (using environment variable)
+    - name: Package SAM application using environment variable
+      run: sam package --output-template-file packaged.yaml --s3-bucket $S3_BUCKET_NAME
+      env:
+        S3_BUCKET_NAME: aws-sam-lambda-20241021
+
+    # Step 11: Deploy the SAM application
     # Deploy the packaged application using CloudFormation and the specified parameters
     - name: Deploy SAM application
       run: sam deploy \
@@ -71,7 +79,7 @@ jobs:
           LambdaRoleArn=${{ secrets.LAMBDA_ROLE_ARN }} \
           SlackWebhookUrl=${{ secrets.SLACK_WEBHOOK_URL }}
 
-    # Step 10: Output the deployed Lambda ARN
+    # Step 12: Output the deployed Lambda ARN
     # After deployment, fetch and output the ARN of the deployed Lambda function
     - name: Output Lambda ARN
       run: |
